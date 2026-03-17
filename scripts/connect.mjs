@@ -4,21 +4,16 @@ import { randomBytes } from 'node:crypto';
 import { createInterface } from 'node:readline';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
-import { join, dirname } from 'node:path';
+import { join } from 'node:path';
 import { execFile } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
 
 const API_BASE = 'https://app.usewire.io';
 const CONNECT_PAGE = `${API_BASE}/plugin/connect`;
 const CONFIG_DIR = join(homedir(), '.wire-memory');
 const CONFIG_FILE = join(CONFIG_DIR, 'config.json');
+const ENV_FILE = join(CONFIG_DIR, 'env');
 const POLL_INTERVAL_MS = 2000;
 const POLL_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
-
-// Plugin root is one level up from scripts/
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const PLUGIN_ROOT = join(__dirname, '..');
-const MCP_JSON_FILE = join(PLUGIN_ROOT, '.mcp.json');
 
 function openBrowser(url) {
   const platform = process.platform;
@@ -77,24 +72,29 @@ async function saveConfig(data) {
 
   await writeFile(CONFIG_FILE, JSON.stringify(config, null, 2), { encoding: 'utf-8', mode: 0o600 });
 
-  // Write actual values into the plugin's .mcp.json so it works immediately
-  const mcpConfig = {
-    'wire-memory': {
-      type: 'http',
-      url: data.mcp_endpoint,
-      headers: {
-        'x-api-key': data.api_key,
-      },
-    },
-  };
+  // Write env vars file — .mcp.json references ${WIRE_MEMORY_URL} and ${WIRE_MEMORY_API_KEY}
+  const envContent = `# Wire Memory — sourced by shell profile\nexport WIRE_MEMORY_URL="${data.mcp_endpoint}"\nexport WIRE_MEMORY_API_KEY="${data.api_key}"\n`;
+  await writeFile(ENV_FILE, envContent, { encoding: 'utf-8', mode: 0o600 });
 
-  await writeFile(MCP_JSON_FILE, JSON.stringify(mcpConfig, null, 2), { encoding: 'utf-8', mode: 0o600 });
+  // Add source line to shell profile if not already present
+  await ensureShellSource();
+}
 
-  // Prevent git from tracking .mcp.json changes (it now contains real API key)
-  try {
-    execFile('git', ['update-index', '--skip-worktree', MCP_JSON_FILE], () => {});
-  } catch {
-    // Not a git repo or git not available -- safe to ignore
+async function ensureShellSource() {
+  const sourceLine = `\n# Wire Memory\n[ -f ~/.wire-memory/env ] && source ~/.wire-memory/env\n`;
+  const home = homedir();
+  // Try zshrc first (macOS default), then bashrc
+  const profiles = [join(home, '.zshrc'), join(home, '.bashrc')];
+
+  for (const profile of profiles) {
+    try {
+      const content = await readFile(profile, 'utf-8');
+      if (content.includes('.wire-memory/env')) return; // Already sourced
+      await writeFile(profile, content + sourceLine, 'utf-8');
+      return;
+    } catch {
+      // File doesn't exist, try next
+    }
   }
 }
 
