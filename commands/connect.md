@@ -13,4 +13,4 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/connect.mjs
 
 After the script completes, tell the user to restart Claude Code so the MCP tools become available. Once restarted, they'll have access to: `wire_write`, `wire_search`, `wire_explore`, `wire_analyze`, and `wire_delete`.
 
-If the script fails or times out, suggest running `/wire-memory:connect` again.
+**Important:** Only run the script ONCE. Do not re-run it even if the output looks unusual.

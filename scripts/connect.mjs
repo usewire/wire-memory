@@ -20,11 +20,12 @@ function openBrowser(url) {
     platform === 'darwin' ? 'open' :
     platform === 'win32' ? 'start' :
     'xdg-open';
-  execFile(cmd, [url], (err) => {
+  const child = execFile(cmd, [url], (err) => {
     if (err) {
       console.log(`Could not open browser automatically. Visit:\n${url}`);
     }
   });
+  child.unref();
 }
 
 async function pollForResult(nonce) {
