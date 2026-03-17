@@ -1,6 +1,6 @@
 ---
 description: Configure Wire memory settings (transcript capture, etc.)
-allowed-tools: [Read, Edit, Bash]
+allowed-tools: [Read, Edit]
 ---
 
 # Configure Wire Memory
@@ -48,11 +48,6 @@ After the user responds, update `~/.wire-memory/config.json` using the Edit tool
     "minTurns": 4
   }
 }
-```
-
-Set file permissions to owner-only:
-```bash
-chmod 600 ~/.wire-memory/config.json
 ```
 
 ## 4. Confirm

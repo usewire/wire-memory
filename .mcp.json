@@ -1,9 +1,9 @@
 {
   "wire-memory": {
     "type": "http",
-    "url": "${WIRE_MEMORY_URL}",
+    "url": "NOT_CONNECTED",
     "headers": {
-      "x-api-key": "${WIRE_MEMORY_API_KEY}"
+      "x-api-key": "NOT_CONNECTED"
     }
   }
 }
