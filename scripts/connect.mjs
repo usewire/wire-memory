@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 import { randomBytes } from 'node:crypto';
-import { createInterface } from 'node:readline';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
@@ -148,70 +147,9 @@ async function main() {
     console.log('  Run /wire-memory:claim to create an account and keep it permanently.');
   }
 
-  // 6. Offer transcript capture setup
-  console.log('');
-  await promptTranscriptConfig();
-
   console.log('');
   console.log('Restart Claude Code to activate Wire memory tools.');
-}
-
-async function promptTranscriptConfig() {
-  const rl = createInterface({ input: process.stdin, output: process.stdout });
-  const ask = (q) => new Promise((resolve) => rl.question(q, resolve));
-
-  console.log('Transcript Capture (optional)');
-  console.log('  Automatically upload session transcripts to your container.');
-  console.log('  Secrets are redacted before upload. Tool results are stripped.');
-  console.log('');
-
-  const answer = await ask('  Enable transcript capture? [y/N]: ');
-  const enabled = answer.trim().toLowerCase() === 'y';
-
-  let hooks = ['PreCompact', 'Stop'];
-  let minTurns = 4;
-
-  if (enabled) {
-    console.log('');
-    console.log('  When to capture:');
-    console.log('  [1] Before compaction + end of session (recommended)');
-    console.log('  [2] Before compaction only');
-    console.log('  [3] End of session only');
-    console.log('');
-
-    const hookChoice = await ask('  Choice [1]: ');
-    switch (hookChoice.trim()) {
-      case '2': hooks = ['PreCompact']; break;
-      case '3': hooks = ['Stop']; break;
-      default: hooks = ['PreCompact', 'Stop'];
-    }
-
-    console.log('');
-    const minAnswer = await ask('  Minimum session length in turns [4]: ');
-    minTurns = parseInt(minAnswer.trim(), 10) || 4;
-    if (minTurns < 1) minTurns = 1;
-  }
-
-  rl.close();
-
-  // Update config with transcript settings
-  let config;
-  try {
-    config = JSON.parse(await readFile(CONFIG_FILE, 'utf-8'));
-  } catch {
-    return; // Config not yet written — shouldn't happen but be safe
-  }
-
-  config.transcripts = { enabled, hooks, minTurns };
-  await writeFile(CONFIG_FILE, JSON.stringify(config, null, 2), { encoding: 'utf-8', mode: 0o600 });
-
-  console.log('');
-  if (enabled) {
-    console.log(`  ✓ Transcript capture: enabled (${hooks.join(', ')}, min ${minTurns} turns)`);
-  } else {
-    console.log('  ✓ Transcript capture: disabled');
-    console.log('    Run /wire-memory:configure anytime to enable it.');
-  }
+  console.log('Run /wire-memory:configure to set up transcript capture.');
 }
 
 main().catch((err) => {
