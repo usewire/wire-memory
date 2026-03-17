@@ -1,0 +1,33 @@
+{
+  "name": "@usewire/memory",
+  "version": "0.1.0",
+  "description": "Persistent memory for AI agents via Wire containers",
+  "author": "Superloops LLC",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/usewire/wire-memory.git"
+  },
+  "homepage": "https://usewire.io",
+  "type": "module",
+  "files": [
+    ".claude-plugin",
+    ".mcp.json",
+    "skills",
+    "commands",
+    "scripts",
+    "LICENSE"
+  ],
+  "keywords": [
+    "wire",
+    "mcp",
+    "memory",
+    "ai",
+    "agent",
+    "claude",
+    "cursor"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
