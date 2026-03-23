@@ -44,8 +44,14 @@ if (existsSync(CONFIG_FILE)) {
       try { user = execFileSync('whoami', { encoding: 'utf-8' }).trim(); } catch { /* skip */ }
     }
     try {
-      const topLevel = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf-8' }).trim();
-      project = basename(topLevel);
+      // Use --git-common-dir to resolve through worktrees to the real repo name
+      // (--show-toplevel returns the worktree path, which may be a Conductor workspace name)
+      const commonDir = execFileSync('git', ['rev-parse', '--git-common-dir'], { encoding: 'utf-8' }).trim();
+      // commonDir is e.g. "/path/to/repo/.git" or "/path/to/repo/.git/worktrees/branch"
+      // For main repo: strip trailing "/.git"
+      // For worktree: strip trailing "/.git/worktrees/<name>" to get the main repo path
+      const gitIdx = commonDir.indexOf('/.git');
+      project = gitIdx !== -1 ? basename(commonDir.slice(0, gitIdx)) : basename(commonDir);
     } catch {
       project = basename(process.cwd());
     }

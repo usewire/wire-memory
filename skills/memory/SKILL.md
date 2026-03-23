@@ -33,6 +33,8 @@ This ensures project-specific decisions don't pollute other contexts, while glob
 
 Use `wire_write` with structured JSON for better searchability and filtering. Always include `project`, `user`, and `scope`.
 
+**Keep writes concise.** Summarize, don't transcribe. If a write has multiple distinct points, split them into separate entries. Use tags to associate related writes.
+
 ### Decisions
 When the user picks an approach, or you help evaluate trade-offs:
 ```json
@@ -121,6 +123,32 @@ When writing new information on a topic, **search first** for existing entries o
 3. Write the new, updated entry
 
 This keeps the container clean and avoids conflicting information. Don't just append corrections — replace the outdated entry entirely.
+
+## Search & Explore Reference
+
+### wire_explore
+Discover what's in the container before searching.
+- **No params** — lists all entity types with counts
+- **`entityType`** — schema, fields, and relationships for that type
+- **`includeSamples: true`** — include sample entries (requires `entityType`)
+
+### wire_search modes
+| Mode | Required params | Use for |
+|------|----------------|---------|
+| `semantic` | `query` | Natural language questions ("how did we handle auth?") |
+| `text` | `query`, `entityType` | Exact/keyword matches within a known type |
+| `filter` | `entityType`, `filters` | Field-level conditions (e.g., type=correction, project=wire-memory) |
+| `list` | `entityType` | Browse/paginate all entries of a type |
+| `get` | `id` | Fetch a single entry by ID |
+
+**Key parameters:**
+- `filters` — array of `{field, operator, value}`. Operators: `eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `contains`, `in`
+- `fields` — projection, return only these fields
+- `orderBy` — `{field, direction: "asc"|"desc"}`
+- `topK` — max semantic results (default 5, max 100)
+- `limit`/`offset` — pagination for list/filter/text modes
+
+**Prefer `semantic` mode** for most searches — it works across all entity types without needing to know the exact type or field names. Use `filter` when you need precision (e.g., all corrections for a specific project).
 
 ## Proactive Retrieval (Read)
 
