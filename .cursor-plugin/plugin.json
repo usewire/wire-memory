@@ -2,7 +2,7 @@
   "name": "wire-memory",
   "displayName": "Wire Memory",
   "description": "Persistent memory for AI agents. Connect to a Wire container to remember decisions, patterns, and context across sessions.",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "author": {
     "name": "Wire",
     "url": "https://usewire.io"
