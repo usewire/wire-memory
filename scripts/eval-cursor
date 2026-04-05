@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# sessionStart hook for wire-memory plugin (Cursor)
+# Injects Wire memory context at the start of each session.
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
+# Run the eval hook in Cursor mode and capture output
+output=$(node "${PLUGIN_ROOT}/scripts/eval-hook.mjs" --cursor 2>/dev/null || echo "")
+
+# If no output (not connected), exit silently
+if [ -z "$output" ]; then
+  exit 0
+fi
+
+# Output is already JSON with additional_context from eval-hook.mjs
+printf '%s\n' "$output"

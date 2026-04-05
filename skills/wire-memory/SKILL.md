@@ -1,5 +1,5 @@
 ---
-name: memory
+name: wire-memory
 description: ALWAYS USE THIS SKILL. Automatic context logging and retrieval via Wire container. Invoke this skill at the start of every session, when making decisions, when receiving corrections, when establishing patterns, and before ending sessions. This skill provides persistent cross-project memory that supplements the built-in memory system.
 ---
 
@@ -9,10 +9,16 @@ You have a Wire memory container connected via the `wire-memory` MCP server. Use
 
 ## Tools
 
-- **mcp__plugin_wire-memory_wire-memory__wire_search**: Search past context. Modes: `text`, `semantic`, `list`, `get`, `filter`.
-- **mcp__plugin_wire-memory_wire-memory__wire_write**: Log context. Accepts structured JSON (preferred) or markdown.
-- **mcp__plugin_wire-memory_wire-memory__wire_explore**: Discover what's stored — types, schemas, counts.
-- **mcp__plugin_wire-memory_wire-memory__wire_delete**: Remove an entry by ID.
+Wire memory tools are available via MCP. Tool names vary by platform:
+- **Cursor**: `wire_search`, `wire_write`, `wire_explore`, `wire_delete`
+- **Claude Code**: `wire_search` (same pattern for others)
+
+Use whichever format your platform provides.
+
+- **wire_search**: Search past context. Modes: `text`, `semantic`, `list`, `get`, `filter`.
+- **wire_write**: Log context. Accepts structured JSON (preferred) or markdown.
+- **wire_explore**: Discover what's stored — types, schemas, counts.
+- **wire_delete**: Remove an entry by ID.
 
 ## Scoped Memory
 
@@ -119,7 +125,7 @@ At the end of substantial sessions:
 When writing new information on a topic, **search first** for existing entries on the same subject. If you find outdated entries:
 
 1. Note the entry ID from the search result
-2. Delete the outdated entry with `mcp__plugin_wire-memory_wire-memory__wire_delete`
+2. Delete the outdated entry with `wire_delete`
 3. Write the new, updated entry
 
 This keeps the container clean and avoids conflicting information. Don't just append corrections — replace the outdated entry entirely.
@@ -165,7 +171,7 @@ Discover what's in the container before searching.
 
 Use specific queries. `"billing webhook error handling"` not `"stuff about billing"`.
 
-Use `mcp__plugin_wire-memory_wire-memory__wire_explore` first if you've never searched this container before.
+Use `wire_explore` first if you've never searched this container before.
 
 ## Transcript Capture
 

@@ -1,0 +1,9 @@
+{
+  "hooks": {
+    "sessionStart": [
+      {
+        "command": "./scripts/eval-cursor"
+      }
+    ]
+  }
+}
