@@ -1,5 +1,6 @@
 {
   "name": "wire-memory",
+  "displayName": "Wire Memory",
   "description": "Persistent memory for AI agents. Connect to a Wire container to remember decisions, patterns, and context across sessions.",
   "version": "0.6.0",
   "author": {
@@ -9,5 +10,7 @@
   "homepage": "https://github.com/usewire/wire-memory",
   "repository": "https://github.com/usewire/wire-memory",
   "license": "MIT",
-  "keywords": ["memory", "mcp", "context", "persistence", "wire"]
+  "keywords": ["memory", "mcp", "context", "persistence", "wire"],
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks-cursor.json"
 }

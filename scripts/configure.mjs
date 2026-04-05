@@ -55,68 +55,86 @@ async function main() {
 
   // ── Transcript Capture ────────────────────────────────────────────────────
 
-  const currentEnabled = config.transcripts?.enabled || false;
-  const currentHooks = config.transcripts?.hooks || ['PreCompact', 'Stop'];
-  const currentMinTurns = config.transcripts?.minTurns || 4;
+  // Detect platform — Cursor does not provide transcript file access to hooks
+  const isCursor = !!process.env.CURSOR_PLUGIN_ROOT;
 
-  console.log('Transcript Capture');
-  console.log('  Automatically upload session transcripts to your Wire container.');
-  console.log('  Secrets are redacted before upload. Tool results are stripped.');
-  if (currentEnabled) {
-    console.log(`  Currently: enabled (${currentHooks.join(', ')}, min ${currentMinTurns} turns)`);
+  let enabled;
+  let hooks;
+  let minTurns;
+
+  if (isCursor) {
+    console.log('Transcript Capture');
+    console.log('  Not available on Cursor.');
+    console.log('  (Cursor does not provide transcript file access to hooks.)');
+    console.log('');
+
+    enabled = false;
+    hooks = [];
+    minTurns = 4;
   } else {
-    console.log('  Currently: disabled');
-  }
-  console.log('');
+    const currentEnabled = config.transcripts?.enabled || false;
+    const currentHooks = config.transcripts?.hooks || ['PreCompact', 'Stop'];
+    const currentMinTurns = config.transcripts?.minTurns || 4;
 
-  const enableAnswer = await prompt.ask(
-    `  Enable transcript capture? [${currentEnabled ? 'Y/n' : 'y/N'}]: `
-  );
-  const enabled =
-    enableAnswer.trim().toLowerCase() === 'y' ||
-    (enableAnswer.trim() === '' && currentEnabled);
-
-  let hooks = currentHooks;
-  let minTurns = currentMinTurns;
-
-  if (enabled) {
-    console.log('');
-    console.log('  When to capture:');
-    console.log('  [1] Before compaction + end of session (recommended)');
-    console.log('  [2] Before compaction only');
-    console.log('  [3] End of session only');
-    console.log('');
-
-    const defaultChoice =
-      currentHooks.includes('PreCompact') && currentHooks.includes('Stop')
-        ? '1'
-        : currentHooks.includes('PreCompact')
-          ? '2'
-          : '3';
-
-    const hookChoice = await prompt.ask(`  Choice [${defaultChoice}]: `);
-    const choice = hookChoice.trim() || defaultChoice;
-
-    switch (choice) {
-      case '1':
-        hooks = ['PreCompact', 'Stop'];
-        break;
-      case '2':
-        hooks = ['PreCompact'];
-        break;
-      case '3':
-        hooks = ['Stop'];
-        break;
-      default:
-        hooks = ['PreCompact', 'Stop'];
+    console.log('Transcript Capture');
+    console.log('  Automatically upload session transcripts to your Wire container.');
+    console.log('  Secrets are redacted before upload. Tool results are stripped.');
+    if (currentEnabled) {
+      console.log(`  Currently: enabled (${currentHooks.join(', ')}, min ${currentMinTurns} turns)`);
+    } else {
+      console.log('  Currently: disabled');
     }
-
     console.log('');
-    const minAnswer = await prompt.ask(
-      `  Minimum session length in turns [${currentMinTurns}]: `
+
+    const enableAnswer = await prompt.ask(
+      `  Enable transcript capture? [${currentEnabled ? 'Y/n' : 'y/N'}]: `
     );
-    minTurns = parseInt(minAnswer.trim(), 10) || currentMinTurns;
-    if (minTurns < 1) minTurns = 1;
+    enabled =
+      enableAnswer.trim().toLowerCase() === 'y' ||
+      (enableAnswer.trim() === '' && currentEnabled);
+
+    hooks = currentHooks;
+    minTurns = currentMinTurns;
+
+    if (enabled) {
+      console.log('');
+      console.log('  When to capture:');
+      console.log('  [1] Before compaction + end of session (recommended)');
+      console.log('  [2] Before compaction only');
+      console.log('  [3] End of session only');
+      console.log('');
+
+      const defaultChoice =
+        currentHooks.includes('PreCompact') && currentHooks.includes('Stop')
+          ? '1'
+          : currentHooks.includes('PreCompact')
+            ? '2'
+            : '3';
+
+      const hookChoice = await prompt.ask(`  Choice [${defaultChoice}]: `);
+      const choice = hookChoice.trim() || defaultChoice;
+
+      switch (choice) {
+        case '1':
+          hooks = ['PreCompact', 'Stop'];
+          break;
+        case '2':
+          hooks = ['PreCompact'];
+          break;
+        case '3':
+          hooks = ['Stop'];
+          break;
+        default:
+          hooks = ['PreCompact', 'Stop'];
+      }
+
+      console.log('');
+      const minAnswer = await prompt.ask(
+        `  Minimum session length in turns [${currentMinTurns}]: `
+      );
+      minTurns = parseInt(minAnswer.trim(), 10) || currentMinTurns;
+      if (minTurns < 1) minTurns = 1;
+    }
   }
 
   prompt.close();

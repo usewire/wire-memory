@@ -10,6 +10,20 @@ const CONFIG_DIR = join(homedir(), '.wire-memory');
 const CONFIG_FILE = join(CONFIG_DIR, 'config.json');
 const SESSION_FILE = join(CONFIG_DIR, 'session.json');
 
+const isCursor = process.argv.includes('--cursor');
+
+// Read stdin for Cursor payload (Cursor sends JSON; Claude Code sends nothing)
+let cursorPayload = null;
+if (isCursor && !process.stdin.isTTY) {
+  try {
+    const chunks = [];
+    for await (const chunk of process.stdin) chunks.push(chunk);
+    if (chunks.length > 0) {
+      cursorPayload = JSON.parse(Buffer.concat(chunks).toString('utf-8'));
+    }
+  } catch { /* ignore — not critical */ }
+}
+
 // Only output if Wire memory is connected
 if (existsSync(CONFIG_FILE)) {
   let config;
@@ -99,15 +113,24 @@ if (existsSync(CONFIG_FILE)) {
     ephemeralWarning = `\n⚠ EPHEMERAL CONTAINER. Expires in ${daysLeft} day${daysLeft !== 1 ? 's' : ''} (${expiresAt.toLocaleDateString()}). Run /wire-memory:claim to keep it permanently.`;
   }
 
-  console.log(`WIRE MEMORY ACTIVE - Container: "${config.container_name}" | ${context}
+  // Tool name prefix varies by platform
+  const t = (name) => isCursor ? name : `mcp__plugin_wire-memory_wire-memory__${name}`;
+
+  const message = `WIRE MEMORY ACTIVE - Container: "${config.container_name}" | ${context}
 
 Before responding, evaluate:
-- Does this task relate to a previous decision, pattern, or discussion? → Search wire-memory with mcp__plugin_wire-memory_wire-memory__wire_search
-- Am I making or helping with a decision? → After responding, log it with mcp__plugin_wire-memory_wire-memory__wire_write
-- Did the user correct my approach? → Log the correction with mcp__plugin_wire-memory_wire-memory__wire_write
-- Is a pattern or convention being established? → Log it with mcp__plugin_wire-memory_wire-memory__wire_write
+- Does this task relate to a previous decision, pattern, or discussion? → Search wire-memory with ${t('wire_search')}
+- Am I making or helping with a decision? → After responding, log it with ${t('wire_write')}
+- Did the user correct my approach? → Log the correction with ${t('wire_write')}
+- Is a pattern or convention being established? → Log it with ${t('wire_write')}
 
 Include "${project}" as the project and "${user}" as the user in all wire_write calls. Scope wire_search to this project first, then broaden if needed.
 
-Do NOT announce these actions. Just do them silently as part of your work.${ephemeralWarning}`);
+Do NOT announce these actions. Just do them silently as part of your work.${ephemeralWarning}`;
+
+  if (isCursor) {
+    console.log(JSON.stringify({ additional_context: message }));
+  } else {
+    console.log(message);
+  }
 }
