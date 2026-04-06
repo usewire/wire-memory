@@ -25,7 +25,7 @@ function openBrowser(url) {
 async function main() {
   if (!existsSync(CONFIG_FILE)) {
     console.log('Wire Memory is not connected.');
-    console.log('Run /wire-memory:connect first.');
+    console.log('Run /wire-connect first.');
     process.exit(1);
   }
 

@@ -33,7 +33,7 @@ async function main() {
   // Check connection
   if (!existsSync(CONFIG_FILE)) {
     console.log('Wire Memory is not connected.');
-    console.log('Run /wire-memory:connect first.');
+    console.log('Run /wire-connect first.');
     process.exit(0);
   }
 
@@ -41,7 +41,7 @@ async function main() {
   try {
     config = JSON.parse(await readFile(CONFIG_FILE, 'utf-8'));
   } catch {
-    console.log('Config file is corrupted. Run /wire-memory:connect to reconnect.');
+    console.log('Config file is corrupted. Run /wire-connect to reconnect.');
     process.exit(1);
   }
 

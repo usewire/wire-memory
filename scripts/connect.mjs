@@ -138,12 +138,12 @@ async function main() {
     const daysLeft = Math.max(0, Math.ceil((expiresAt - Date.now()) / (24 * 60 * 60 * 1000)));
     console.log('');
     console.log(`  ⚠ Ephemeral container. Expires in ${daysLeft} day${daysLeft !== 1 ? 's' : ''} (${expiresAt.toLocaleDateString()}).`);
-    console.log('  Run /wire-memory:claim to create an account and keep it permanently.');
+    console.log('  Run /wire-claim to create an account and keep it permanently.');
   }
 
   console.log('');
   console.log('Restart Claude Code to activate Wire memory tools.');
-  console.log('Run /wire-memory:configure to set up transcript capture.');
+  console.log('Run /wire-configure to set up transcript capture.');
 }
 
 main().catch((err) => {

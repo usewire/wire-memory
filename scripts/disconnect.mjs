@@ -36,7 +36,7 @@ async function main() {
   await writeFile(MCP_JSON_FILE, JSON.stringify(mcpConfig, null, 2), 'utf-8');
 
   console.log('\nDisconnected. Restart Claude Code to deactivate Wire memory tools.');
-  console.log('Run /wire-memory:connect to reconnect.');
+  console.log('Run /wire-connect to reconnect.');
 }
 
 main().catch((err) => {

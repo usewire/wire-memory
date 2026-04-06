@@ -10,7 +10,7 @@ const CONFIG_FILE = join(homedir(), '.wire-memory', 'config.json');
 async function main() {
   if (!existsSync(CONFIG_FILE)) {
     console.log('Wire Memory is not connected.');
-    console.log('Run /wire-memory:connect to get started.');
+    console.log('Run /wire-connect to get started.');
     process.exit(0);
   }
 
@@ -28,7 +28,7 @@ async function main() {
     const daysLeft = Math.max(0, Math.ceil((expiresAt - Date.now()) / (24 * 60 * 60 * 1000)));
     console.log(`  Status:       Ephemeral. Expires in ${daysLeft} day${daysLeft !== 1 ? 's' : ''} (${expiresAt.toLocaleDateString()}).`);
     console.log('');
-    console.log('  Run /wire-memory:claim to create an account and keep it permanently.');
+    console.log('  Run /wire-claim to create an account and keep it permanently.');
   } else {
     console.log('  Status:       Claimed (permanent)');
   }

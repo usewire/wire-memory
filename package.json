@@ -1,6 +1,6 @@
 {
   "name": "@usewire/memory",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "description": "Persistent memory for AI agents via Wire containers",
   "author": "Superloops LLC",
   "license": "MIT",
@@ -15,6 +15,7 @@
     ".cursor-plugin",
     ".mcp.json",
     "hooks",
+    "rules",
     "skills",
     "commands",
     "scripts",

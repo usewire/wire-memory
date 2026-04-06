@@ -1,0 +1,12 @@
+---
+description: Warn user when Wire memory container is ephemeral and about to expire. Check ~/.wire-memory/context.md for ephemeral status.
+alwaysApply: false
+---
+
+# Wire Memory — Ephemeral Container
+
+If `~/.wire-memory/context.md` contains an ephemeral warning, the user's container will expire and all stored context will be lost.
+
+**At the start of the session**, tell the user their container is ephemeral and how many days remain. Suggest running `/wire-claim` to make it permanent.
+
+Keep the warning brief — one sentence, not a paragraph.

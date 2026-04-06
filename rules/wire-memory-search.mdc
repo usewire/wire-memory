@@ -1,0 +1,20 @@
+---
+description: Search Wire memory for relevant context when connected
+alwaysApply: true
+---
+
+# Wire Memory — Search
+
+Check `~/.wire-memory/context.md` for connection status. If the file exists and shows "Connected", Wire memory is active. Use the **User** and **Project** values from that file as your scoping parameters.
+
+## When to Search
+
+- **Session start** — recent session summaries for this project
+- **Before suggesting an approach** — past corrections or decisions that apply
+- **When user references past work** — what was discussed or decided
+
+Use `wire_search` via MCP. Prefer `semantic` mode with a specific query.
+
+**Scope**: filter by project name first. Broaden only if no results.
+
+Use `wire_explore` (no params) to see what's in the container before your first search.

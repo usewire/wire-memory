@@ -1,19 +1,87 @@
-#!/usr/bin/env bash
-# sessionStart hook for wire-memory plugin (Cursor)
-# Injects Wire memory context at the start of each session.
+#!/usr/bin/env node
 
-set -euo pipefail
+// sessionStart hook for wire-memory plugin (Cursor)
+// Writes dynamic context to ~/.wire-memory/context.md so rules can reference it.
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+import { readFile, writeFile } from 'node:fs/promises';
+import { homedir } from 'node:os';
+import { join, basename } from 'node:path';
+import { existsSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 
-# Run the eval hook in Cursor mode and capture output
-output=$(node "${PLUGIN_ROOT}/scripts/eval-hook.mjs" --cursor 2>/dev/null || echo "")
+const CONFIG_DIR = join(homedir(), '.wire-memory');
+const CONFIG_FILE = join(CONFIG_DIR, 'config.json');
+const CONTEXT_FILE = join(CONFIG_DIR, 'context.md');
 
-# If no output (not connected), exit silently
-if [ -z "$output" ]; then
-  exit 0
-fi
+// Drain stdin (Cursor sends JSON payload on stdin for hooks)
+if (!process.stdin.isTTY) {
+  try {
+    const chunks = [];
+    for await (const chunk of process.stdin) chunks.push(chunk);
+  } catch { /* ignore */ }
+}
 
-# Output is already JSON with additional_context from eval-hook.mjs
-printf '%s\n' "$output"
+// Only proceed if Wire memory is connected
+if (!existsSync(CONFIG_FILE)) process.exit(0);
+
+let config;
+try {
+  config = JSON.parse(await readFile(CONFIG_FILE, 'utf-8'));
+} catch {
+  process.exit(0);
+}
+
+// Resolve user + project
+let user = '';
+let project = '';
+
+try {
+  user = execFileSync('git', ['config', 'user.name'], { encoding: 'utf-8' }).trim();
+} catch {
+  try { user = execFileSync('whoami', { encoding: 'utf-8' }).trim(); } catch { /* skip */ }
+}
+try {
+  const commonDir = execFileSync('git', ['rev-parse', '--git-common-dir'], { encoding: 'utf-8' }).trim();
+  const gitIdx = commonDir.indexOf('/.git');
+  project = gitIdx !== -1 ? basename(commonDir.slice(0, gitIdx)) : basename(commonDir);
+} catch {
+  project = basename(process.cwd());
+}
+
+// Ephemeral status check + self-heal
+let ephemeralWarning = '';
+
+if (config.is_ephemeral === true) {
+  try {
+    const statusUrl = config.mcp_endpoint.replace(/\/mcp$/, '/status');
+    const statusRes = await fetch(statusUrl, {
+      headers: { 'x-api-key': config.api_key },
+      signal: AbortSignal.timeout(5000),
+    });
+    if (statusRes.ok) {
+      const statusData = await statusRes.json();
+      if (!(statusData?.data?.is_ephemeral ?? true)) {
+        config.is_ephemeral = false;
+        await writeFile(CONFIG_FILE, JSON.stringify(config, null, 2), { encoding: 'utf-8', mode: 0o600 });
+      }
+    }
+  } catch { /* skip */ }
+}
+
+if (config.is_ephemeral === true && config.created_at) {
+  const createdAt = new Date(config.created_at);
+  const expiresAt = new Date(createdAt.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const daysLeft = Math.max(0, Math.ceil((expiresAt - Date.now()) / (24 * 60 * 60 * 1000)));
+  ephemeralWarning = `\n\n**⚠ EPHEMERAL CONTAINER** — expires in ${daysLeft} day${daysLeft !== 1 ? 's' : ''} (${expiresAt.toLocaleDateString()}). Run \`/wire-claim\` to keep it permanently.`;
+}
+
+// Write context file that rules reference
+const context = `# Wire Memory Context
+
+- **Status**: Connected
+- **Container**: ${config.container_name}
+- **User**: ${user}
+- **Project**: ${project}${ephemeralWarning}
+`;
+
+await writeFile(CONTEXT_FILE, context, { encoding: 'utf-8', mode: 0o600 });

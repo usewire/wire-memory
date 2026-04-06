@@ -10,20 +10,6 @@ const CONFIG_DIR = join(homedir(), '.wire-memory');
 const CONFIG_FILE = join(CONFIG_DIR, 'config.json');
 const SESSION_FILE = join(CONFIG_DIR, 'session.json');
 
-const isCursor = process.argv.includes('--cursor');
-
-// Read stdin for Cursor payload (Cursor sends JSON; Claude Code sends nothing)
-let cursorPayload = null;
-if (isCursor && !process.stdin.isTTY) {
-  try {
-    const chunks = [];
-    for await (const chunk of process.stdin) chunks.push(chunk);
-    if (chunks.length > 0) {
-      cursorPayload = JSON.parse(Buffer.concat(chunks).toString('utf-8'));
-    }
-  } catch { /* ignore — not critical */ }
-}
-
 // Only output if Wire memory is connected
 if (existsSync(CONFIG_FILE)) {
   let config;
@@ -110,11 +96,10 @@ if (existsSync(CONFIG_FILE)) {
     const createdAt = new Date(config.created_at);
     const expiresAt = new Date(createdAt.getTime() + 7 * 24 * 60 * 60 * 1000);
     const daysLeft = Math.max(0, Math.ceil((expiresAt - Date.now()) / (24 * 60 * 60 * 1000)));
-    ephemeralWarning = `\n⚠ EPHEMERAL CONTAINER. Expires in ${daysLeft} day${daysLeft !== 1 ? 's' : ''} (${expiresAt.toLocaleDateString()}). Run /wire-memory:claim to keep it permanently.`;
+    ephemeralWarning = `\n⚠ EPHEMERAL CONTAINER. Expires in ${daysLeft} day${daysLeft !== 1 ? 's' : ''} (${expiresAt.toLocaleDateString()}). Run /wire-claim to keep it permanently.`;
   }
 
-  // Tool name prefix varies by platform
-  const t = (name) => isCursor ? name : `mcp__plugin_wire-memory_wire-memory__${name}`;
+  const t = (name) => `mcp__plugin_wire-memory_wire-memory__${name}`;
 
   const message = `WIRE MEMORY ACTIVE - Container: "${config.container_name}" | ${context}
 
@@ -128,9 +113,5 @@ Include "${project}" as the project and "${user}" as the user in all wire_write 
 
 Do NOT announce these actions. Just do them silently as part of your work.${ephemeralWarning}`;
 
-  if (isCursor) {
-    console.log(JSON.stringify({ additional_context: message }));
-  } else {
-    console.log(message);
-  }
+  console.log(message);
 }

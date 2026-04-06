@@ -1,0 +1,29 @@
+---
+description: Log decisions, corrections, and patterns to Wire memory when connected
+alwaysApply: true
+---
+
+# Wire Memory — Write
+
+Check `~/.wire-memory/context.md` for connection status. If the file exists and shows "Connected", Wire memory is active. Use the **User** and **Project** values from that file in all writes.
+
+## When to Write
+
+Log silently as moments happen — don't announce it:
+
+- **Decision made** — user picks an approach or you evaluate trade-offs
+- **Correction received** — user corrects your approach (highest value)
+- **Pattern established** — a convention is set or repeated
+- **Session ending** — brief summary of what was done and what's next
+
+Use `wire_write` via MCP with structured JSON. Always include `type`, `project`, `user`, `scope`.
+
+Scope: `"project"` for project-specific context (default), `"global"` for cross-project preferences.
+
+## Before Writing
+
+Search first for existing entries on the same topic. If outdated, delete with `wire_delete` then write the replacement.
+
+## Do NOT Log
+
+Secrets, credentials, PII, stack traces, verbatim code, or things already in git history.

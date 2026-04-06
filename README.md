@@ -1,9 +1,10 @@
 # wire-memory
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.1.0-green.svg)](https://github.com/usewire/wire-memory)
+[![Version](https://img.shields.io/badge/version-0.7.0-green.svg)](https://github.com/usewire/wire-memory)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)](https://nodejs.org)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-plugin-purple.svg)](https://docs.anthropic.com/en/docs/claude-code)
+[![Cursor](https://img.shields.io/badge/Cursor-plugin-blue.svg)](https://cursor.com)
 
 **Persistent memory for AI coding agents.**
 
@@ -25,25 +26,37 @@ Every AI session starts from zero. Your agent doesn't know what you decided yest
 
 ## Quick start
 
+### Claude Code (CLI)
+
 ```bash
 # Add the Wire marketplace (one-time)
-claude plugin marketplace add usewire/wire-plugins
+/plugin marketplace add usewire/wire-plugins
 
 # Install wire-memory
-claude plugin install wire-memory@wire-plugins
+/plugin install wire-memory@wire-plugins
 ```
 
-Then inside Claude Code:
+### Claude Code (Desktop)
+
+Click **+** next to the prompt box, select **Plugins**, then **Add plugin**. Add the Wire marketplace (`usewire/wire-plugins`) if you haven't already, then install wire-memory.
+
+### Cursor
+
+Open **Settings** > **Plugins**, paste `https://github.com/usewire/wire-memory` in the plugin input, and install.
+
+### Connect
+
+After installing, run:
 
 ```
-/wire-memory:connect
+/wire-connect
 ```
 
 This opens your browser to authenticate and select a container. No account required. The connect flow can spin up a free ephemeral container you can test for 7 days, then claim by creating an account.
 
-After connecting, restart Claude Code. Your memory tools are ready.
+After connecting, restart your editor. Your memory tools are ready.
 
-### Choosing a scope
+### Choosing a scope (Claude Code)
 
 Claude Code will ask you to choose an installation scope:
 
@@ -125,30 +138,32 @@ Your agent gets these MCP tools from your Wire container:
 | `wire_delete` | Remove outdated entries |
 | `wire_analyze` | Re-analyze the container's contents |
 
-## Commands
+## Skills
 
-| Command | Description |
-|---------|-------------|
-| `/wire-memory:connect` | Authenticate and connect to a Wire container |
-| `/wire-memory:configure` | Configure settings (transcript capture, etc.) |
-| `/wire-memory:status` | Show connection status and container info |
-| `/wire-memory:claim` | Claim an ephemeral container to make it permanent |
-| `/wire-memory:disconnect` | Remove credentials and disconnect |
+| Skill | Description |
+|-------|-------------|
+| `/wire-connect` | Authenticate and connect to a Wire container |
+| `/wire-configure` | Configure settings (transcript capture, etc.) |
+| `/wire-status` | Show connection status and container info |
+| `/wire-claim` | Claim an ephemeral container to make it permanent |
+| `/wire-disconnect` | Remove credentials and disconnect |
 
 ## How it works
 
-1. **Connect.** `/wire-memory:connect` opens your browser to authenticate. Pick a container or create one. No account needed for the 7-day trial. During connect you'll be asked whether to enable transcript capture.
-2. **Configure.** The connect script writes your MCP endpoint and API key to the plugin's `.mcp.json`. Restart Claude Code to activate. Run `/wire-memory:configure` anytime to change settings.
-3. **Use.** A bundled skill teaches your agent when to search and write memory. It happens automatically as part of normal conversation.
+1. **Connect.** `/wire-connect` opens your browser to authenticate. Pick a container or create one. No account needed for the 7-day trial. During connect you'll be asked whether to enable transcript capture (Claude Code only).
+2. **Configure.** The connect script writes your MCP endpoint and API key to the plugin's `.mcp.json`. Restart your editor to activate. Run `/wire-configure` anytime to change settings.
+3. **Use.** Bundled skills and rules teach your agent when to search and write memory. It happens automatically as part of normal conversation.
 
 ## Transcript capture
 
+> **Claude Code only.** Cursor does not provide transcript access to plugins.
+
 wire-memory can automatically capture session transcripts and upload them to your Wire container. This gives your memory layer the full conversation history, not just what the agent explicitly logs, but every question, decision, and tool call.
 
-Enable during connect or anytime via `/wire-memory:configure`:
+Enable during connect or anytime via `/wire-configure`:
 
 ```
-/wire-memory:configure
+/wire-configure
 
 Wire Memory Configuration
 ─────────────────────────
@@ -196,11 +211,11 @@ The difference is the clock. After 7 days the container and its data are deleted
 
 **How you'll know it's ephemeral:**
 
-- `/wire-memory:connect` prints a warning with the expiry date
-- `/wire-memory:status` shows "Ephemeral" with a countdown
+- `/wire-connect` prints a warning with the expiry date
+- `/wire-status` shows "Ephemeral" with a countdown
 - Your agent sees a reminder at the start of each session
 
-**To keep it permanently**, run `/wire-memory:claim`. This opens your browser to create a Wire account. Once you sign up, your existing container and all its memory transfer to your account. Nothing is lost. The plugin detects the change automatically on the next session start.
+**To keep it permanently**, run `/wire-claim`. This opens your browser to create a Wire account. Once you sign up, your existing container and all its memory transfer to your account. Nothing is lost. The plugin detects the change automatically on the next session start.
 
 If you claim through the Wire website directly (outside the plugin), the plugin self-heals. It checks ephemeral status on session start and updates your local config when it sees the container has been claimed.
 
@@ -208,21 +223,29 @@ If you claim through the Wire website directly (outside the plugin), the plugin 
 
 ```
 wire-memory/
-├── .claude-plugin/plugin.json    # Plugin manifest
+├── .claude-plugin/plugin.json    # Claude Code manifest
+├── .cursor-plugin/plugin.json    # Cursor manifest
 ├── .mcp.json                     # MCP server config (placeholder until connected)
-├── skills/memory/SKILL.md        # Teaches agent when to read/write memory
-├── hooks/hooks.json              # Hook registration (eval, transcript capture)
-├── commands/
-│   ├── connect.md                # /wire-memory:connect
-│   ├── configure.md              # /wire-memory:configure
-│   ├── status.md                 # /wire-memory:status
-│   ├── claim.md                  # /wire-memory:claim
-│   └── disconnect.md             # /wire-memory:disconnect
+├── skills/
+│   ├── wire-memory/SKILL.md      # Teaches agent when to read/write memory
+│   ├── wire-connect/SKILL.md     # /wire-connect
+│   ├── wire-configure/SKILL.md   # /wire-configure
+│   ├── wire-status/SKILL.md      # /wire-status
+│   ├── wire-claim/SKILL.md       # /wire-claim
+│   └── wire-disconnect/SKILL.md  # /wire-disconnect
+├── rules/                        # Cursor rules (.mdc)
+│   ├── wire-memory-search.mdc    # When to search memory
+│   ├── wire-memory-write.mdc     # When to write memory
+│   └── wire-memory-ephemeral.mdc # Ephemeral container warnings
+├── hooks/
+│   ├── hooks.json                # Claude Code hooks (eval, transcript capture)
+│   └── hooks-cursor.json         # Cursor hooks (session start context)
 ├── scripts/
 │   ├── connect.mjs               # Nonce auth flow
 │   ├── configure.mjs             # Interactive settings (transcript capture, etc.)
-│   ├── eval-hook.mjs             # Prompts memory check on each interaction
-│   ├── transcript-upload.mjs     # PreCompact/Stop hook: upload transcripts via REST
+│   ├── eval-hook.mjs             # Claude Code: prompts memory check on each interaction
+│   ├── eval-cursor               # Cursor: writes session context file on start
+│   ├── transcript-upload.mjs     # Claude Code: upload transcripts via REST
 │   ├── redact.mjs                # Secret redaction (~20 patterns)
 │   ├── status.mjs                # Connection info
 │   ├── claim.mjs                 # Claim ephemeral container
@@ -236,7 +259,7 @@ Zero dependencies. Plain Node.js built-ins only.
 ## Requirements
 
 - Node.js >= 18
-- Claude Code >= 1.0.33
+- Claude Code or Cursor
 - No Wire account required. The connect flow offers a free ephemeral container for 7 days. Create an account anytime to keep it permanently.
 
 ## Privacy and security
@@ -245,7 +268,7 @@ Zero dependencies. Plain Node.js built-ins only.
 - `.mcp.json` marked `--skip-worktree` after connect to prevent accidental commits of your API key
 - All data stored in your Wire container. You own it, you control access.
 - API key is scoped to your specific container
-- Transcript capture is disabled by default. Opt-in only via `/wire-memory:configure`.
+- Transcript capture is disabled by default. Opt-in only via `/wire-configure`. Claude Code only.
 - Transcripts are redacted for secrets before upload. Covers ~20 patterns including API keys, tokens, passwords, connection strings, and private keys.
 
 ## License
