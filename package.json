@@ -1,6 +1,6 @@
 {
   "name": "@usewire/memory",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Persistent memory for AI agents via Wire containers",
   "author": "Superloops LLC",
   "license": "MIT",

@@ -37,7 +37,7 @@ This ensures project-specific decisions don't pollute other contexts, while glob
 
 **Log these moments as they happen — don't wait to be asked.**
 
-Use `wire_write` with structured JSON for better searchability and filtering. Always include `project`, `user`, and `scope`.
+Use `wire_write` with structured JSON for better searchability and filtering. Always include `project`, `user`, and `scope`. Pass the JSON object as the **`content`** parameter — not `payload` or any other name.
 
 **Keep writes concise.** Summarize, don't transcribe. If a write has multiple distinct points, split them into separate entries. Use tags to associate related writes.
 
