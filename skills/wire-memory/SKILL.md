@@ -41,6 +41,8 @@ Use `wire_write` with structured JSON for better searchability and filtering. Al
 
 **Keep writes concise.** Summarize, don't transcribe. If a write has multiple distinct points, split them into separate entries. Use tags to associate related writes.
 
+**On transient failures, retry once.** If `wire_write` fails with a schema validation error on arguments that match the tool's declared schema (for example, an `Expected object, received string` on a `metadata` object you constructed correctly), it's usually a one-off serialization hiccup in the MCP transport. Retry the same call once. Do not fall back to any local-file storage — Wire memory is the system of record; silently writing elsewhere fragments context and breaks cross-session recall.
+
 ### Decisions
 When the user picks an approach, or you help evaluate trade-offs:
 ```json

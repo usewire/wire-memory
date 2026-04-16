@@ -14,9 +14,9 @@ const CONFIG_FILE = join(CONFIG_DIR, 'config.json');
 const POLL_INTERVAL_MS = 2000;
 const POLL_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
-// Plugin root is one level up from scripts/
+// This script lives at skills/wire-connect/scripts/ — plugin root is three levels up.
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PLUGIN_ROOT = join(__dirname, '..');
+const PLUGIN_ROOT = join(__dirname, '..', '..', '..');
 const MCP_JSON_FILE = join(PLUGIN_ROOT, '.mcp.json');
 
 function openBrowser(url) {

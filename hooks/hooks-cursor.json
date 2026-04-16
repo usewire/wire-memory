@@ -2,7 +2,10 @@
   "hooks": {
     "sessionStart": [
       {
-        "command": "node ${CURSOR_PLUGIN_ROOT}/scripts/eval-cursor"
+        "command": "node \"${CURSOR_PLUGIN_ROOT}/scripts/self-heal-mcp.mjs\""
+      },
+      {
+        "command": "node \"${CURSOR_PLUGIN_ROOT}/scripts/eval-cursor\""
       }
     ]
   }
