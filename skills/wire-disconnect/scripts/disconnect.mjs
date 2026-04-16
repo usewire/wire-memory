@@ -8,9 +8,9 @@ import { fileURLToPath } from 'node:url';
 
 const CONFIG_DIR = join(homedir(), '.wire-memory');
 
-// Plugin root is one level up from scripts/
+// This script lives at skills/wire-disconnect/scripts/ — plugin root is three levels up.
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PLUGIN_ROOT = join(__dirname, '..');
+const PLUGIN_ROOT = join(__dirname, '..', '..', '..');
 const MCP_JSON_FILE = join(PLUGIN_ROOT, '.mcp.json');
 
 async function main() {

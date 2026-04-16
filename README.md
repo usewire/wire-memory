@@ -44,6 +44,12 @@ Click **+** next to the prompt box, select **Plugins**, then **Add plugin**. Add
 
 Open **Settings** > **Plugins**, paste `https://github.com/usewire/wire-memory` in the plugin input, and install.
 
+**On Cursor 2.5+, add `app.usewire.io` to your sandbox allowlist before running `/wire-connect`.** The agent's sandbox blocks outbound network by default, and the connect flow needs to reach Wire's API to register the connect nonce and poll for your container selection.
+
+Add the domain via Settings > Cursor Settings > Agents > Auto-Run (`sandbox.json`), or switch Auto-Run mode from "Run in Sandbox" to "Ask Every Time" if you prefer per-prompt approval.
+
+Same allowlist entry covers `/wire-claim`, `/wire-disconnect`, and `/wire-status`. One-time setup.
+
 ### Connect
 
 After installing, run:
@@ -227,29 +233,33 @@ wire-memory/
 ├── .cursor-plugin/plugin.json    # Cursor manifest
 ├── .mcp.json                     # MCP server config (placeholder until connected)
 ├── skills/
-│   ├── wire-memory/SKILL.md      # Teaches agent when to read/write memory
-│   ├── wire-connect/SKILL.md     # /wire-connect
-│   ├── wire-configure/SKILL.md   # /wire-configure
-│   ├── wire-status/SKILL.md      # /wire-status
-│   ├── wire-claim/SKILL.md       # /wire-claim
-│   └── wire-disconnect/SKILL.md  # /wire-disconnect
-├── rules/                        # Cursor rules (.mdc)
-│   ├── wire-memory-search.mdc    # When to search memory
-│   ├── wire-memory-write.mdc     # When to write memory
-│   └── wire-memory-ephemeral.mdc # Ephemeral container warnings
+│   ├── wire-memory/SKILL.md            # Teaches agent when to read/write memory
+│   ├── wire-connect/
+│   │   ├── SKILL.md                    # /wire-connect
+│   │   └── scripts/connect.mjs         # Nonce auth flow
+│   ├── wire-claim/
+│   │   ├── SKILL.md                    # /wire-claim
+│   │   └── scripts/claim.mjs           # Claim ephemeral container
+│   ├── wire-status/
+│   │   ├── SKILL.md                    # /wire-status
+│   │   └── scripts/status.mjs          # Connection info
+│   ├── wire-disconnect/
+│   │   ├── SKILL.md                    # /wire-disconnect
+│   │   └── scripts/disconnect.mjs      # Cleanup
+│   └── wire-configure/SKILL.md         # /wire-configure (reads config.json directly)
+├── rules/                              # Cursor rules (.mdc)
+│   ├── wire-memory-search.mdc          # When to search memory
+│   ├── wire-memory-write.mdc           # When to write memory
+│   └── wire-memory-ephemeral.mdc       # Ephemeral container warnings
 ├── hooks/
-│   ├── hooks.json                # Claude Code hooks (eval, transcript capture)
-│   └── hooks-cursor.json         # Cursor hooks (session start context)
-├── scripts/
-│   ├── connect.mjs               # Nonce auth flow
-│   ├── configure.mjs             # Interactive settings (transcript capture, etc.)
-│   ├── eval-hook.mjs             # Claude Code: prompts memory check on each interaction
-│   ├── eval-cursor               # Cursor: writes session context file on start
-│   ├── transcript-upload.mjs     # Claude Code: upload transcripts via REST
-│   ├── redact.mjs                # Secret redaction (~20 patterns)
-│   ├── status.mjs                # Connection info
-│   ├── claim.mjs                 # Claim ephemeral container
-│   └── disconnect.mjs            # Cleanup
+│   ├── hooks.json                      # Claude Code hooks (eval, transcript capture)
+│   └── hooks-cursor.json               # Cursor hooks (session start context)
+├── scripts/                            # Hook-invoked scripts (plugin-root)
+│   ├── eval-hook.mjs                   # Claude Code: prompts memory check on each interaction
+│   ├── eval-cursor                     # Cursor: writes session context file on start
+│   ├── transcript-upload.mjs           # Claude Code: upload transcripts via REST
+│   ├── configure.mjs                   # Transcript-capture config helper
+│   └── redact.mjs                      # Secret redaction (~20 patterns)
 ├── package.json
 └── LICENSE
 ```
