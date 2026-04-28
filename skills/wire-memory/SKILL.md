@@ -9,16 +9,22 @@ You have a Wire memory container connected via the `wire-memory` MCP server. Use
 
 ## Tools
 
-Wire memory tools are available via MCP. Tool names vary by platform:
-- **Cursor**: `wire_search`, `wire_write`, `wire_explore`, `wire_delete`
-- **Claude Code**: `wire_search` (same pattern for others)
+Wire memory exposes six MCP tools. Names are stable across platforms (Claude Code, Cursor, etc.):
 
-Use whichever format your platform provides.
+| Tool | Purpose |
+|------|---------|
+| `wire_write` | Save a new entry. Structured JSON (preferred) or markdown/text. |
+| `wire_explore` | Structured access to canonical data: `schema`, `list`, `get`, `filter`, `text`. |
+| `wire_search` | Fuzzy hybrid retrieval over raw content (file chunks, recent agent writes that haven't been analyzed yet). |
+| `wire_navigate` | Traverse raw content from a known entry id: `siblings`, `source`, `relationships`. |
+| `wire_delete` | Permanently delete an entry by id. |
+| `wire_analyze` | Re-analyze the container to promote raw entries into canonical entities. |
 
-- **wire_search**: Search past context. Modes: `text`, `semantic`, `list`, `get`, `filter`.
-- **wire_write**: Log context. Accepts structured JSON (preferred) or markdown.
-- **wire_explore**: Discover what's stored — types, schemas, counts.
-- **wire_delete**: Remove an entry by ID.
+### How retrieval splits across tools
+
+- **Canonical entries** are the structured rows produced by analysis (decisions, corrections, patterns, preferences, sessions). Reach them with `wire_explore`.
+- **Raw entries** are unprocessed content — recent `wire_write` calls before the next `wire_analyze`, plus uploaded file chunks. Reach them with `wire_search` (fuzzy) or `wire_navigate` (positional/relational from an anchor id).
+- When unsure which side an entry lives on, start with `wire_explore mode: "text"` (no `entityType`) — it BM25-searches across all canonicals — and fall back to `wire_search` if nothing matches.
 
 ## Scoped Memory
 
@@ -27,9 +33,9 @@ Every write MUST include `project` and `user` fields from the eval hook context.
 - **`"project"`** — decisions, patterns, and corrections specific to this project. Default.
 - **`"global"`** — user preferences, coding style, cross-project conventions.
 
-When searching, **search project-scoped first**, then broaden to global if no results:
-1. `wire_search` with filter for current project name
-2. If nothing relevant, search again without project filter
+When searching, **scope to the current project first**, then broaden to global if no results:
+1. `wire_explore mode: "filter"` with a `project` predicate (or pass `query` to `wire_search` plus a project mention).
+2. If nothing relevant, drop the project filter and search globally.
 
 This ensures project-specific decisions don't pollute other contexts, while global preferences are always reachable.
 
@@ -52,7 +58,7 @@ When the user picks an approach, or you help evaluate trade-offs:
   "user": "Jitpal Kocher",
   "scope": "project",
   "title": "Use React Query for server state",
-  "date": "2026-03-16",
+  "date": "2026-04-28",
   "context": "Evaluated Zustand vs React Query for API data",
   "choice": "React Query for server state, Zustand for UI only",
   "why": "Automatic cache invalidation, eliminates sync bugs"
@@ -68,7 +74,7 @@ When the user corrects your approach — these are high-value:
   "user": "Jitpal Kocher",
   "scope": "project",
   "title": "Don't mock the database in integration tests",
-  "date": "2026-03-16",
+  "date": "2026-04-28",
   "what_happened": "I suggested mocking Postgres in tests",
   "feedback": "Use real database — mocked tests missed a broken migration last quarter"
 }
@@ -109,7 +115,7 @@ At the end of substantial sessions:
   "project": "wire-platform",
   "user": "Jitpal Kocher",
   "scope": "project",
-  "date": "2026-03-16",
+  "date": "2026-04-28",
   "accomplished": "Built wire-memory plugin, updated Linear projects",
   "in_progress": "Testing plugin connect flow",
   "next": "Verify MCP tools work after connect, test skill activation"
@@ -126,54 +132,81 @@ At the end of substantial sessions:
 
 When writing new information on a topic, **search first** for existing entries on the same subject. If you find outdated entries:
 
-1. Note the entry ID from the search result
+1. Note the entry id from the search/explore result
 2. Delete the outdated entry with `wire_delete`
 3. Write the new, updated entry
 
 This keeps the container clean and avoids conflicting information. Don't just append corrections — replace the outdated entry entirely.
 
-## Search & Explore Reference
+## Tool Reference
 
-### wire_explore
-Discover what's in the container before searching.
-- **No params** — lists all entity types with counts
-- **`entityType`** — schema, fields, and relationships for that type
-- **`includeSamples: true`** — include sample entries (requires `entityType`)
+### wire_explore — structured canonical access
 
-### wire_search modes
-| Mode | Required params | Use for |
-|------|----------------|---------|
-| `semantic` | `query` | Natural language questions ("how did we handle auth?") |
-| `text` | `query`, `entityType` | Exact/keyword matches within a known type |
-| `filter` | `entityType`, `filters` | Field-level conditions (e.g., type=correction, project=wire-memory) |
-| `list` | `entityType` | Browse/paginate all entries of a type |
-| `get` | `id` | Fetch a single entry by ID |
+Five modes. Default is `schema`.
 
-**Key parameters:**
-- `filters` — array of `{field, operator, value}`. Operators: `eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `contains`, `in`
-- `fields` — projection, return only these fields
-- `orderBy` — `{field, direction: "asc"|"desc"}`
-- `topK` — max semantic results (default 5, max 100)
-- `limit`/`offset` — pagination for list/filter/text modes
+| Mode | Required | Use for |
+|------|----------|---------|
+| `schema` | — | List entity types, fields, relationships, counts. With `entityType`, drill into one type. |
+| `list` | `entityType` | Browse/paginate canonical rows of a type. |
+| `get` | `entityType`, `id` | Fetch one canonical row, with mentions and parts. |
+| `filter` | `entityType`, `filters` | Field predicates. Operators: `eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `contains`, `in`. |
+| `text` | `query` | BM25 keyword match. `entityType` is optional — omit to search across all canonicals. |
 
-**Prefer `semantic` mode** for most searches — it works across all entity types without needing to know the exact type or field names. Use `filter` when you need precision (e.g., all corrections for a specific project).
+Useful shared params: `fields` (projection), `orderBy`, `limit`/`offset`, `include` (related entity types to expand), `source` (restrict to a `source` prefix like `"file:notes.md"`).
+
+**Start every new container with `wire_explore` (no params)** to learn what's there before searching.
+
+### wire_search — fuzzy retrieval over raw content
+
+Hybrid pipeline (BM25 + vector + HyDE + rerank). Operates on **raw / non-canonical** entries only — file chunks, freshly-written entries that haven't been analyzed yet.
+
+Params:
+- `query` (required) — natural-language question
+- `topK` — max results (default 5, max 100)
+- `fileIds` — restrict to specific uploaded files
+- `minScore` — drop matches below this score
+
+`wire_search` has **no `mode` parameter**. If you need keyword/list/get/filter behavior, that's `wire_explore`.
+
+### wire_navigate — traverse raw content from an anchor
+
+Given a non-canonical entry id (typically returned by `wire_search`), reach adjacent or related raw content.
+
+| Mode | Returns |
+|------|---------|
+| `siblings` | Adjacent chunks in the same source file (positional, `range` neighbors before and after). |
+| `source` | All entries from the same source (paginated). |
+| `relationships` | Entries linked via `entry_relationships` edges. Filter by `type` (e.g. `"contradicts"`, `"elaborates"`, `"supersedes"`, `"corroborates"`). |
+
+All modes accept optional temporal filters: `since` and `before` (ISO timestamp or relative duration like `"1h"`, `"24h"`, `"7d"`), and `sort` (`"relevance"` default, or `"chronological"`).
+
+`wire_navigate` never crosses into canonical entries. For canonicals, use `wire_explore`.
+
+### wire_delete
+
+Pass `entryId`. Cleans up related graph edges automatically.
+
+### wire_analyze
+
+Re-runs the container's analysis pipeline so recent `wire_write` entries get promoted into canonical entities and indexed for `wire_explore`. Costs more than the other tools — call sparingly, e.g. after a batch of new writes when you're about to need structured access.
 
 ## Proactive Retrieval (Read)
 
 **Search Wire for relevant context in these moments — don't wait to be asked:**
 
-- **Session start** — search for recent session summaries and open threads for this project
-- **Before working on a component** — search for past decisions about it (e.g., `"auth middleware decisions"`)
-- **Before suggesting an approach** — search for corrections or established patterns that might apply
-- **When the user references past work** — search for what was discussed
+- **Session start** — recent session summaries and open threads for this project
+- **Before working on a component** — past decisions about it (e.g., `"auth middleware decisions"`)
+- **Before suggesting an approach** — corrections or established patterns that might apply
+- **When the user references past work** — what was discussed
 
-**Search strategy:**
-1. First search scoped to the current project (filter by project name)
-2. If no relevant results, broaden to all entries (catches global preferences and cross-project patterns)
+**Search ladder:**
+
+1. New container? Run `wire_explore` (no params) once to see what types exist.
+2. Looking for canonical context (decisions/patterns/corrections/preferences/sessions)? Use `wire_explore mode: "text"` (cross-entity BM25) or `mode: "filter"` with `type` and `project` predicates.
+3. Looking for fuzzy semantic matches across notes and files? Use `wire_search` with a specific query.
+4. Found a useful raw chunk and want surrounding context? Use `wire_navigate` with that chunk's id.
 
 Use specific queries. `"billing webhook error handling"` not `"stuff about billing"`.
-
-Use `wire_explore` first if you've never searched this container before.
 
 ## Transcript Capture
 

@@ -1,7 +1,7 @@
 # wire-memory
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.7.0-green.svg)](https://github.com/usewire/wire-memory)
+[![Version](https://img.shields.io/badge/version-0.8.0-green.svg)](https://github.com/usewire/wire-memory)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)](https://nodejs.org)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-plugin-purple.svg)](https://docs.anthropic.com/en/docs/claude-code)
 [![Cursor](https://img.shields.io/badge/Cursor-plugin-blue.svg)](https://cursor.com)
@@ -138,11 +138,12 @@ Your agent gets these MCP tools from your Wire container:
 
 | Tool | Purpose |
 |------|---------|
-| `wire_search` | Search memory by text, semantic similarity, or filters |
 | `wire_write` | Save decisions, patterns, corrections, preferences |
-| `wire_explore` | Browse what's stored: types, schemas, entry counts |
+| `wire_explore` | Structured access to canonical entries — `schema`, `list`, `get`, `filter`, `text` |
+| `wire_search` | Fuzzy hybrid retrieval over raw content (file chunks, recent writes) |
+| `wire_navigate` | Traverse raw content from a known entry id — `siblings`, `source`, `relationships` |
 | `wire_delete` | Remove outdated entries |
-| `wire_analyze` | Re-analyze the container's contents |
+| `wire_analyze` | Re-analyze the container to promote raw entries into canonical entities |
 
 ## Skills
 
