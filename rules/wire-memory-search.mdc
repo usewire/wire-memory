@@ -13,12 +13,11 @@ Check `~/.wire-memory/context.md` for connection status. If the file exists and 
 - **Before suggesting an approach** — past corrections or decisions that apply
 - **When user references past work** — what was discussed or decided
 
-Two retrieval surfaces:
+Three retrieval surfaces, pick by what you're looking for:
 
-- `wire_explore` — structured access to canonical entries (decisions, corrections, patterns, preferences). Modes: `schema`, `list`, `get`, `filter`, `text`. Start with `mode: "text"` (cross-entity BM25) or `mode: "filter"` with a `project` predicate.
-- `wire_search` — fuzzy hybrid retrieval over raw content (file chunks, recent writes that haven't been analyzed). Pass a specific natural-language `query`. There is no `mode` parameter.
-
-If a `wire_search` match is interesting and you want surrounding context, follow up with `wire_navigate` (`siblings`, `source`, or `relationships`) using the matched entry id.
+- `wire_explore` — structured access to indexed entities (decisions, corrections, patterns, preferences). Modes: `schema`, `list`, `get`, `filter`, `text`. Start with `mode: "text"` for keyword match across all entities, or `mode: "filter"` with a `project` predicate.
+- `wire_search` — natural-language semantic match over notes, uploaded files, and recent writes that haven't been turned into indexed entities yet. Pass a specific `query`. There is no `mode` parameter.
+- `wire_navigate` — from a `wire_search` match's id, reach its `siblings`, full `source`, or `relationships`.
 
 **Scope**: filter by project name first. Broaden only if no results.
 

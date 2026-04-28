@@ -14,17 +14,19 @@ Wire memory exposes six MCP tools. Names are stable across platforms (Claude Cod
 | Tool | Purpose |
 |------|---------|
 | `wire_write` | Save a new entry. Structured JSON (preferred) or markdown/text. |
-| `wire_explore` | Structured access to canonical data: `schema`, `list`, `get`, `filter`, `text`. |
-| `wire_search` | Fuzzy hybrid retrieval over raw content (file chunks, recent agent writes that haven't been analyzed yet). |
-| `wire_navigate` | Traverse raw content from a known entry id: `siblings`, `source`, `relationships`. |
+| `wire_explore` | Structured access to indexed entities: `schema`, `list`, `get`, `filter`, `text`. |
+| `wire_search` | Natural-language semantic retrieval over notes and uploaded content. |
+| `wire_navigate` | From a known entry id, reach its `siblings`, the rest of its `source`, or its `relationships`. |
 | `wire_delete` | Permanently delete an entry by id. |
-| `wire_analyze` | Re-analyze the container to promote raw entries into canonical entities. |
+| `wire_analyze` | Re-analyze the container so recent writes become indexed entities. |
 
 ### How retrieval splits across tools
 
-- **Canonical entries** are the structured rows produced by analysis (decisions, corrections, patterns, preferences, sessions). Reach them with `wire_explore`.
-- **Raw entries** are unprocessed content — recent `wire_write` calls before the next `wire_analyze`, plus uploaded file chunks. Reach them with `wire_search` (fuzzy) or `wire_navigate` (positional/relational from an anchor id).
-- When unsure which side an entry lives on, start with `wire_explore mode: "text"` (no `entityType`) — it BM25-searches across all canonicals — and fall back to `wire_search` if nothing matches.
+The container holds two kinds of content: **indexed entities** (the structured rows produced by analysis — decisions, corrections, patterns, preferences, sessions) and **freeform content** (what you've written or uploaded since the last analysis run, plus the original text of source files).
+
+- Reach indexed entities with `wire_explore`.
+- Reach freeform content with `wire_search` (semantic match) or `wire_navigate` (jump from one entry to nearby or related entries).
+- When unsure which side an entry lives on, start with `wire_explore mode: "text"` (no `entityType`) — it keyword-searches across all indexed entities — and fall back to `wire_search` if nothing matches.
 
 ## Scoped Memory
 
@@ -140,25 +142,25 @@ This keeps the container clean and avoids conflicting information. Don't just ap
 
 ## Tool Reference
 
-### wire_explore — structured canonical access
+### wire_explore — structured access to indexed entities
 
 Five modes. Default is `schema`.
 
 | Mode | Required | Use for |
 |------|----------|---------|
 | `schema` | — | List entity types, fields, relationships, counts. With `entityType`, drill into one type. |
-| `list` | `entityType` | Browse/paginate canonical rows of a type. |
-| `get` | `entityType`, `id` | Fetch one canonical row, with mentions and parts. |
+| `list` | `entityType` | Browse/paginate rows of one entity type. |
+| `get` | `entityType`, `id` | Fetch one row, with mentions and parts. |
 | `filter` | `entityType`, `filters` | Field predicates. Operators: `eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `contains`, `in`. |
-| `text` | `query` | BM25 keyword match. `entityType` is optional — omit to search across all canonicals. |
+| `text` | `query` | Keyword match. `entityType` is optional — omit to search across all indexed entities. |
 
 Useful shared params: `fields` (projection), `orderBy`, `limit`/`offset`, `include` (related entity types to expand), `source` (restrict to a `source` prefix like `"file:notes.md"`).
 
 **Start every new container with `wire_explore` (no params)** to learn what's there before searching.
 
-### wire_search — fuzzy retrieval over raw content
+### wire_search — natural-language retrieval over freeform content
 
-Hybrid pipeline (BM25 + vector + HyDE + rerank). Operates on **raw / non-canonical** entries only — file chunks, freshly-written entries that haven't been analyzed yet.
+Semantic match over notes, uploaded files, and recent writes that haven't been turned into indexed entities yet. Use it for natural-language questions where the answer might be embedded in source material.
 
 Params:
 - `query` (required) — natural-language question
@@ -168,27 +170,27 @@ Params:
 
 `wire_search` has **no `mode` parameter**. If you need keyword/list/get/filter behavior, that's `wire_explore`.
 
-### wire_navigate — traverse raw content from an anchor
+### wire_navigate — traverse from a known anchor
 
-Given a non-canonical entry id (typically returned by `wire_search`), reach adjacent or related raw content.
+Given an entry id from a `wire_search` match, reach adjacent or related content.
 
 | Mode | Returns |
 |------|---------|
-| `siblings` | Adjacent chunks in the same source file (positional, `range` neighbors before and after). |
-| `source` | All entries from the same source (paginated). |
-| `relationships` | Entries linked via `entry_relationships` edges. Filter by `type` (e.g. `"contradicts"`, `"elaborates"`, `"supersedes"`, `"corroborates"`). |
+| `siblings` | Adjacent passages from the same source. `range` controls neighbors before and after. |
+| `source` | All passages from the same source (paginated). |
+| `relationships` | Entries connected to the anchor. Filter by `type` (e.g. `"contradicts"`, `"elaborates"`, `"supersedes"`, `"corroborates"`). |
 
 All modes accept optional temporal filters: `since` and `before` (ISO timestamp or relative duration like `"1h"`, `"24h"`, `"7d"`), and `sort` (`"relevance"` default, or `"chronological"`).
 
-`wire_navigate` never crosses into canonical entries. For canonicals, use `wire_explore`.
+`wire_navigate` operates on freeform content. To explore indexed entities, use `wire_explore`.
 
 ### wire_delete
 
-Pass `entryId`. Cleans up related graph edges automatically.
+Pass `entryId`. Cleans up related links automatically.
 
 ### wire_analyze
 
-Re-runs the container's analysis pipeline so recent `wire_write` entries get promoted into canonical entities and indexed for `wire_explore`. Costs more than the other tools — call sparingly, e.g. after a batch of new writes when you're about to need structured access.
+Re-runs the container's analysis so recent `wire_write` entries become indexed entities reachable through `wire_explore`. Costs more than the other tools — call sparingly, e.g. after a batch of new writes when you're about to need structured access.
 
 ## Proactive Retrieval (Read)
 
@@ -202,9 +204,9 @@ Re-runs the container's analysis pipeline so recent `wire_write` entries get pro
 **Search ladder:**
 
 1. New container? Run `wire_explore` (no params) once to see what types exist.
-2. Looking for canonical context (decisions/patterns/corrections/preferences/sessions)? Use `wire_explore mode: "text"` (cross-entity BM25) or `mode: "filter"` with `type` and `project` predicates.
-3. Looking for fuzzy semantic matches across notes and files? Use `wire_search` with a specific query.
-4. Found a useful raw chunk and want surrounding context? Use `wire_navigate` with that chunk's id.
+2. Looking for an indexed entity (decisions/patterns/corrections/preferences/sessions)? Use `wire_explore mode: "text"` for keyword match across all entities, or `mode: "filter"` with `type` and `project` predicates.
+3. Looking for something in your notes, uploaded files, or recent writes? Use `wire_search` with a specific natural-language query.
+4. Got a useful `wire_search` match and want surrounding context? Use `wire_navigate` with that entry's id.
 
 Use specific queries. `"billing webhook error handling"` not `"stuff about billing"`.
 
@@ -217,7 +219,7 @@ Wire Memory can automatically capture session transcripts and upload them to you
 
 Transcripts are stored as JSONL files (one turn per line, tool results stripped, secrets redacted). They appear in the container's file list alongside regular uploads and are searchable via `wire_search`.
 
-This is complementary to skill-driven writes — transcripts capture the raw conversation flow, while `wire_write` captures curated decisions, patterns, and corrections.
+This is complementary to skill-driven writes — transcripts capture the full conversation flow, while `wire_write` captures curated decisions, patterns, and corrections.
 
 ## Guidelines
 

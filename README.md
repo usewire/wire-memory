@@ -139,11 +139,11 @@ Your agent gets these MCP tools from your Wire container:
 | Tool | Purpose |
 |------|---------|
 | `wire_write` | Save decisions, patterns, corrections, preferences |
-| `wire_explore` | Structured access to canonical entries — `schema`, `list`, `get`, `filter`, `text` |
-| `wire_search` | Fuzzy hybrid retrieval over raw content (file chunks, recent writes) |
-| `wire_navigate` | Traverse raw content from a known entry id — `siblings`, `source`, `relationships` |
+| `wire_explore` | Structured access to indexed entities — `schema`, `list`, `get`, `filter`, `text` |
+| `wire_search` | Natural-language semantic retrieval over notes and uploaded content |
+| `wire_navigate` | From a known entry id, reach its `siblings`, full `source`, or `relationships` |
 | `wire_delete` | Remove outdated entries |
-| `wire_analyze` | Re-analyze the container to promote raw entries into canonical entities |
+| `wire_analyze` | Re-analyze the container so recent writes become indexed entities |
 
 ## Skills
 
