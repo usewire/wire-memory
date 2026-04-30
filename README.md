@@ -1,7 +1,7 @@
 # wire-memory
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.8.0-green.svg)](https://github.com/usewire/wire-memory)
+[![Version](https://img.shields.io/badge/version-0.9.0-green.svg)](https://github.com/usewire/wire-memory)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)](https://nodejs.org)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-plugin-purple.svg)](https://docs.anthropic.com/en/docs/claude-code)
 [![Cursor](https://img.shields.io/badge/Cursor-plugin-blue.svg)](https://cursor.com)
@@ -265,7 +265,7 @@ wire-memory/
 └── LICENSE
 ```
 
-Zero dependencies. Plain Node.js built-ins only.
+One runtime dependency: [`@usewire/sdk`](https://www.npmjs.com/package/@usewire/sdk) for the connect flow. Everything else is plain Node.js built-ins.
 
 ## Requirements
 

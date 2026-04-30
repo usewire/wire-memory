@@ -1,143 +1,134 @@
 #!/usr/bin/env node
 
-import { randomBytes } from 'node:crypto';
-import { mkdir, writeFile } from 'node:fs/promises';
+/**
+ * Connect Wire Memory to a Wire container (SUP-606).
+ *
+ * The SDK is stateless. wire-memory persists what it needs:
+ *   ~/.wire-memory/device-key.json   — Ed25519 keypair (mode 0600)
+ *   ~/.wire-memory/config.json       — Connection metadata for status/disconnect
+ *   <plugin-root>/.mcp.json          — MCP entry consumed by Claude Code/Cursor
+ */
+import { readFile, mkdir, writeFile, unlink } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { execFile } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { WireClient } from '@usewire/sdk';
 
-const API_BASE = 'https://app.usewire.io';
-const CONNECT_PAGE = `${API_BASE}/plugin/connect`;
+const APP_ID = 'wire-memory';
 const CONFIG_DIR = join(homedir(), '.wire-memory');
 const CONFIG_FILE = join(CONFIG_DIR, 'config.json');
-const POLL_INTERVAL_MS = 2000;
-const POLL_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+const DEVICE_KEY_FILE = join(CONFIG_DIR, 'device-key.json');
 
-// This script lives at skills/wire-connect/scripts/ — plugin root is three levels up.
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PLUGIN_ROOT = join(__dirname, '..', '..', '..');
 const MCP_JSON_FILE = join(PLUGIN_ROOT, '.mcp.json');
 
-function openBrowser(url) {
-  const platform = process.platform;
-  const cmd =
-    platform === 'darwin' ? 'open' :
-    platform === 'win32' ? 'start' :
-    'xdg-open';
-  const child = execFile(cmd, [url], (err) => {
-    if (err) {
-      console.log(`Could not open browser automatically. Visit:\n${url}`);
-    }
-  });
-  child.unref();
-}
-
-async function pollForResult(nonce) {
-  const startTime = Date.now();
-
-  while (Date.now() - startTime < POLL_TIMEOUT_MS) {
-    try {
-      const res = await fetch(`${API_BASE}/api/v1/plugin/poll?nonce=${nonce}`);
-      const data = await res.json();
-
-      if (data.status === 'ready') {
-        return data;
-      }
-
-      if (data.status === 'expired') {
-        throw new Error('Connection session expired. Please try again.');
-      }
-
-      // Still pending -- wait and retry
-      await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
-    } catch (err) {
-      if (err.message.includes('expired')) throw err;
-      // Network error -- wait and retry
-      await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
-    }
+async function readJsonOrNull(path) {
+  try {
+    return JSON.parse(await readFile(path, 'utf-8'));
+  } catch {
+    return null;
   }
-
-  throw new Error('Connection timed out after 5 minutes. Please try again.');
 }
 
-async function saveConfig(data) {
-  await mkdir(CONFIG_DIR, { recursive: true, mode: 0o700 });
+async function writeSecret(path, data) {
+  await mkdir(dirname(path), { recursive: true, mode: 0o700 });
+  await writeFile(path, JSON.stringify(data, null, 2), {
+    encoding: 'utf-8',
+    mode: 0o600,
+  });
+}
 
-  // Save config for status/disconnect commands
-  const config = {
-    mcp_endpoint: data.mcp_endpoint,
-    api_key: data.api_key,
-    container_id: data.container_id,
-    container_name: data.container_name,
-    connected_at: new Date().toISOString(),
-    is_ephemeral: data.is_ephemeral ?? false,
-    created_at: data.created_at ?? null,
-  };
+async function persistConnection(connection) {
+  // device-key.json — preserved across reconnects so the same install
+  // keeps the same credentialId on the server.
+  await writeSecret(DEVICE_KEY_FILE, connection.deviceKey);
 
-  await writeFile(CONFIG_FILE, JSON.stringify(config, null, 2), { encoding: 'utf-8', mode: 0o600 });
+  // config.json — existing format kept stable so wire-status,
+  // wire-disconnect, and wire-configure keep working unchanged.
+  await writeSecret(CONFIG_FILE, {
+    mcp_endpoint: connection.mcpUrl,
+    api_key: connection.apiKey,
+    container_id: connection.containerId,
+    container_name: connection.containerName,
+    connected_at: connection.connectedAt.toISOString(),
+    is_ephemeral: Boolean(connection.expiresAt),
+    created_at: connection.expiresAt
+      ? new Date(connection.expiresAt.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()
+      : null,
+    app_id: connection.appId,
+    credential_id: connection.credentialId,
+    org_slug: connection.orgSlug,
+    expires_at: connection.expiresAt?.toISOString() ?? null,
+    label: connection.label,
+  });
 
-  // Write actual values into the plugin's .mcp.json
-  const mcpConfig = {
+  await writeSecret(MCP_JSON_FILE, {
     'wire-memory': {
       type: 'http',
-      url: data.mcp_endpoint,
-      headers: {
-        'x-api-key': data.api_key,
-      },
+      url: connection.mcpUrl,
+      headers: { 'x-api-key': connection.apiKey },
     },
-  };
-
-  await writeFile(MCP_JSON_FILE, JSON.stringify(mcpConfig, null, 2), { encoding: 'utf-8', mode: 0o600 });
+  });
 }
 
 async function main() {
   console.log('Wire Memory - connecting to Wire...\n');
 
-  // 1. Generate nonce
-  const nonce = randomBytes(24).toString('hex');
-
-  // 2. Register nonce with Wire
-  const connectRes = await fetch(`${API_BASE}/api/v1/plugin/connect`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      nonce,
-      app_name: 'Wire Memory',
-      scopes: ['read', 'write'],
-    }),
-  });
-
-  if (!connectRes.ok) {
-    const err = await connectRes.json().catch(() => ({}));
-    throw new Error(
-      `Failed to start connection: ${err?.error?.message || connectRes.statusText}`
-    );
+  const existingConfig = await readJsonOrNull(CONFIG_FILE);
+  if (existingConfig?.api_key) {
+    console.log('Already connected.');
+    console.log(`  Container: ${existingConfig.container_name}`);
+    console.log(`  Endpoint:  ${existingConfig.mcp_endpoint}`);
+    console.log('\nRun /wire-disconnect first if you want to switch containers.');
+    return;
   }
 
-  // 3. Open browser to connect page
-  const connectUrl = `${CONNECT_PAGE}?nonce=${nonce}`;
-  console.log('Opening browser to authenticate...');
-  console.log(`If the browser doesn't open, visit:\n${connectUrl}\n`);
-  openBrowser(connectUrl);
+  // Reuse the device key if one exists from a prior install — keeps the
+  // same credentialId on the server across reconnects.
+  const existingDeviceKey = await readJsonOrNull(DEVICE_KEY_FILE);
 
-  // 4. Poll for result
-  console.log('Waiting for you to select a container...');
-  const result = await pollForResult(nonce);
+  const client = new WireClient({
+    appId: APP_ID,
+    deviceKey: existingDeviceKey ?? undefined,
+  });
 
-  // 5. Save config + update .mcp.json
-  await saveConfig(result);
+  const connection = await client.connect({
+    label: `${process.env.USER ?? 'unknown'}@${process.env.HOSTNAME ?? process.platform}`,
+    onUserPrompt: ({ code, url }) => {
+      console.log('');
+      console.log(`Your code:  ${code}`);
+      console.log(`Open:       ${url}`);
+      console.log('');
+      console.log('Type the code on the connect screen to authorize this device.');
+      console.log('Opening your browser...');
+      // Best-effort browser open; the URL is already printed.
+      const platform = process.platform;
+      const cmd =
+        platform === 'darwin' ? 'open' :
+        platform === 'win32' ? 'start' :
+        'xdg-open';
+      const child = execFile(cmd, [url], () => {});
+      child.unref();
+    },
+  });
+
+  await persistConnection(connection);
 
   console.log('\nConnected successfully!');
-  console.log(`  Container: ${result.container_name}`);
-  console.log(`  Endpoint:  ${result.mcp_endpoint}`);
+  console.log(`  Container: ${connection.containerName}`);
+  console.log(`  Endpoint:  ${connection.mcpUrl}`);
 
-  if (result.is_ephemeral && result.created_at) {
-    const createdAt = new Date(result.created_at);
-    const expiresAt = new Date(createdAt.getTime() + 7 * 24 * 60 * 60 * 1000);
-    const daysLeft = Math.max(0, Math.ceil((expiresAt - Date.now()) / (24 * 60 * 60 * 1000)));
+  if (connection.expiresAt) {
+    const daysLeft = Math.max(
+      0,
+      Math.ceil((connection.expiresAt.getTime() - Date.now()) / (24 * 60 * 60 * 1000))
+    );
     console.log('');
-    console.log(`  ⚠ Ephemeral container. Expires in ${daysLeft} day${daysLeft !== 1 ? 's' : ''} (${expiresAt.toLocaleDateString()}).`);
+    console.log(
+      `  ⚠ Ephemeral container. Expires in ${daysLeft} day${daysLeft !== 1 ? 's' : ''} (${connection.expiresAt.toLocaleDateString()}).`
+    );
     console.log('  Run /wire-claim to create an account and keep it permanently.');
   }
 
@@ -146,7 +137,8 @@ async function main() {
   console.log('Run /wire-configure to set up transcript capture.');
 }
 
-main().catch((err) => {
+main().catch(async (err) => {
   console.error(`\nError: ${err.message}`);
+  if (err.code) console.error(`  Code: ${err.code}`);
   process.exit(1);
 });
