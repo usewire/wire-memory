@@ -12,6 +12,13 @@
   "license": "MIT",
   "keywords": ["memory", "mcp", "context", "persistence", "wire"],
   "skills": "./skills/",
-  "rules": "./rules/",
-  "hooks": "./hooks/hooks-cursor.json"
+  "hooks": "./hooks/hooks-codex.json",
+  "interface": {
+    "displayName": "Wire Memory",
+    "shortDescription": "Persistent memory for your coding agent.",
+    "longDescription": "Wire Memory gives your agent a portable memory layer. It captures decisions, corrections, and patterns as they happen, then retrieves them when relevant. Memory lives in a Wire container, accessible from any MCP-compatible tool.",
+    "category": "productivity",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png"
+  }
 }

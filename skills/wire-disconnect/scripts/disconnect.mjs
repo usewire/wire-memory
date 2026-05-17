@@ -19,7 +19,8 @@ import { homedir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { WireClient } from '@usewire/sdk';
+import { WireClient } from '../../../vendor/usewire-sdk.mjs';
+import { removeCodexMcpConfig } from '../../../scripts/codex-config.mjs';
 
 const APP_ID = 'wire-memory';
 const CONFIG_DIR = join(homedir(), '.wire-memory');
@@ -72,7 +73,9 @@ async function main() {
   };
   await writeFile(MCP_JSON_FILE, JSON.stringify(mcpConfig, null, 2), 'utf-8');
 
-  console.log('\nDisconnected. Restart Claude Code to deactivate Wire memory tools.');
+  await removeCodexMcpConfig();
+
+  console.log('\nDisconnected. Restart your editor to deactivate Wire memory tools.');
   console.log('Run /wire-connect to reconnect (your install identity is preserved).');
 }
 

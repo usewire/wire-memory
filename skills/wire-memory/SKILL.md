@@ -9,7 +9,7 @@ You have a Wire memory container connected via the `wire-memory` MCP server. Use
 
 ## Tools
 
-Wire memory exposes six MCP tools. Names are stable across platforms (Claude Code, Cursor, etc.):
+Wire memory exposes five MCP tools. Names are stable across platforms (Claude Code, Cursor, Codex, etc.):
 
 | Tool | Purpose |
 |------|---------|
@@ -18,7 +18,6 @@ Wire memory exposes six MCP tools. Names are stable across platforms (Claude Cod
 | `wire_search` | Natural-language semantic retrieval over notes and uploaded content. |
 | `wire_navigate` | From a known entry id, reach its `siblings`, the rest of its `source`, or its `relationships`. |
 | `wire_delete` | Permanently delete an entry by id. |
-| `wire_analyze` | Re-analyze the container so recent writes become indexed entities. |
 
 ### How retrieval splits across tools
 
@@ -187,10 +186,6 @@ All modes accept optional temporal filters: `since` and `before` (ISO timestamp 
 ### wire_delete
 
 Pass `entryId`. Cleans up related links automatically.
-
-### wire_analyze
-
-Re-runs the container's analysis so recent `wire_write` entries become indexed entities reachable through `wire_explore`. Costs more than the other tools — call sparingly, e.g. after a batch of new writes when you're about to need structured access.
 
 ## Proactive Retrieval (Read)
 

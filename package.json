@@ -1,6 +1,6 @@
 {
   "name": "@usewire/memory",
-  "version": "0.9.1",
+  "version": "0.10.0",
   "description": "Persistent memory for AI agents via Wire containers",
   "author": "Superloops LLC",
   "license": "MIT",
@@ -13,14 +13,20 @@
   "files": [
     ".claude-plugin",
     ".cursor-plugin",
+    ".codex-plugin",
     ".mcp.json",
+    "assets",
     "hooks",
     "rules",
     "skills",
     "commands",
     "scripts",
+    "vendor",
     "LICENSE"
   ],
+  "scripts": {
+    "build:vendor": "esbuild node_modules/@usewire/sdk/dist/index.js --bundle --format=esm --platform=node --target=node18 --outfile=vendor/usewire-sdk.mjs"
+  },
   "keywords": [
     "wire",
     "mcp",
@@ -33,7 +39,8 @@
   "engines": {
     "node": ">=18.0.0"
   },
-  "dependencies": {
-    "@usewire/sdk": "^0.1.1"
+  "devDependencies": {
+    "@usewire/sdk": "^0.1.1",
+    "esbuild": "^0.28.0"
   }
 }

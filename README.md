@@ -1,9 +1,10 @@
 # wire-memory
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.9.0-green.svg)](https://github.com/usewire/wire-memory)
+[![Version](https://img.shields.io/badge/version-0.10.0-green.svg)](https://github.com/usewire/wire-memory)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)](https://nodejs.org)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-plugin-purple.svg)](https://docs.anthropic.com/en/docs/claude-code)
+[![Codex](https://img.shields.io/badge/Codex-plugin-black.svg)](https://developers.openai.com/codex)
 [![Cursor](https://img.shields.io/badge/Cursor-plugin-blue.svg)](https://cursor.com)
 
 **Persistent memory for AI coding agents.**
@@ -40,6 +41,19 @@ Every AI session starts from zero. Your agent doesn't know what you decided yest
 
 Click **+** next to the prompt box, select **Plugins**, then **Add plugin**. Add the Wire marketplace (`usewire/wire-plugins`) if you haven't already, then install wire-memory.
 
+### Codex
+
+Add the Wire marketplace, then install wire-memory from it.
+
+```bash
+# Add the Wire marketplace (one-time)
+codex plugin marketplace add usewire/wire-plugins
+```
+
+Then inside Codex, open the plugin picker and select **wire-memory** from the Wire marketplace to install. The same `usewire/wire-plugins` repo serves both Claude Code (`.claude-plugin/marketplace.json`) and Codex (`.agents/plugins/marketplace.json`) — Codex automatically resolves its own catalog path inside the repo.
+
+After install, run `/wire-connect` (see below). Connect writes the wire-memory entry to `~/.codex/config.toml` under `[mcp_servers.wire-memory]` so Codex can register the MCP server on next start. Restart Codex once and the wire tools are available.
+
 ### Cursor
 
 Open **Settings** > **Plugins**, paste `https://github.com/usewire/wire-memory` in the plugin input, and install.
@@ -61,6 +75,8 @@ After installing, run:
 This opens your browser to authenticate and select a container. No account required. The connect flow can spin up a free ephemeral container you can test for 7 days, then claim by creating an account.
 
 After connecting, restart your editor. Your memory tools are ready.
+
+If you've already connected wire-memory in another host (e.g. Claude Code) and then install it in a new one (e.g. Codex), `/wire-connect` is idempotent — it detects the existing connection and writes the new host's MCP config from it. No reconnection needed.
 
 ### Choosing a scope (Claude Code)
 
@@ -143,7 +159,6 @@ Your agent gets these MCP tools from your Wire container:
 | `wire_search` | Natural-language semantic retrieval over notes and uploaded content |
 | `wire_navigate` | From a known entry id, reach its `siblings`, full `source`, or `relationships` |
 | `wire_delete` | Remove outdated entries |
-| `wire_analyze` | Re-analyze the container so recent writes become indexed entities |
 
 ## Skills
 
@@ -158,7 +173,7 @@ Your agent gets these MCP tools from your Wire container:
 ## How it works
 
 1. **Connect.** `/wire-connect` opens your browser to authenticate. Pick a container or create one. No account needed for the 7-day trial. During connect you'll be asked whether to enable transcript capture (Claude Code only).
-2. **Configure.** The connect script writes your MCP endpoint and API key to the plugin's `.mcp.json`. Restart your editor to activate. Run `/wire-configure` anytime to change settings.
+2. **Configure.** The connect script writes your MCP endpoint and API key to the right place for your host: the plugin's `.mcp.json` on Claude Code and Cursor, and `~/.codex/config.toml` on Codex. Restart your editor to activate. Run `/wire-configure` anytime to change settings.
 3. **Use.** Bundled skills and rules teach your agent when to search and write memory. It happens automatically as part of normal conversation.
 
 ## Transcript capture
@@ -231,8 +246,10 @@ If you claim through the Wire website directly (outside the plugin), the plugin 
 ```
 wire-memory/
 ├── .claude-plugin/plugin.json    # Claude Code manifest
+├── .codex-plugin/plugin.json     # Codex manifest
 ├── .cursor-plugin/plugin.json    # Cursor manifest
-├── .mcp.json                     # MCP server config (placeholder until connected)
+├── .mcp.json                     # MCP server config for Claude Code/Cursor (placeholder until connected)
+├── assets/                       # Plugin icon + logo for marketplace surfaces
 ├── skills/
 │   ├── wire-memory/SKILL.md            # Teaches agent when to read/write memory
 │   ├── wire-connect/
@@ -254,23 +271,28 @@ wire-memory/
 │   └── wire-memory-ephemeral.mdc       # Ephemeral container warnings
 ├── hooks/
 │   ├── hooks.json                      # Claude Code hooks (eval, transcript capture)
+│   ├── hooks-codex.json                # Codex hooks (${PLUGIN_ROOT} substitution)
 │   └── hooks-cursor.json               # Cursor hooks (session start context)
 ├── scripts/                            # Hook-invoked scripts (plugin-root)
+│   ├── self-heal-mcp.mjs               # SessionStart: re-apply MCP config from ~/.wire-memory/config.json
+│   ├── codex-config.mjs                # Helpers that edit ~/.codex/config.toml [mcp_servers.wire-memory]
 │   ├── eval-hook.mjs                   # Claude Code: prompts memory check on each interaction
 │   ├── eval-cursor                     # Cursor: writes session context file on start
 │   ├── transcript-upload.mjs           # Claude Code: upload transcripts via REST
 │   ├── configure.mjs                   # Transcript-capture config helper
 │   └── redact.mjs                      # Secret redaction (~20 patterns)
+├── vendor/
+│   └── usewire-sdk.mjs                 # Bundled @usewire/sdk (esbuild) — no install-time deps required
 ├── package.json
 └── LICENSE
 ```
 
-One runtime dependency: [`@usewire/sdk`](https://www.npmjs.com/package/@usewire/sdk) for the connect flow. Everything else is plain Node.js built-ins.
+**Zero runtime dependencies.** The `@usewire/sdk` used by the connect flow is bundled into `vendor/usewire-sdk.mjs` so the plugin works on hosts that don't run `npm install` on plugin install (e.g. Codex). Rebuild the bundle with `npm run build:vendor`.
 
 ## Requirements
 
 - Node.js >= 18
-- Claude Code or Cursor
+- Claude Code, Codex, or Cursor
 - No Wire account required. The connect flow offers a free ephemeral container for 7 days. Create an account anytime to keep it permanently.
 
 ## Privacy and security
