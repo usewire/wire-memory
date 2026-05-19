@@ -49,7 +49,7 @@ async function main() {
   const apiKey = await readApiKey();
   if (apiKey) {
     try {
-      const client = new WireClient({ appId: APP_ID });
+      const client = new WireClient({ agentId: APP_ID });
       await client.disconnect(apiKey);
       console.log('Revoked server-side connection.');
     } catch (err) {
