@@ -1223,13 +1223,13 @@ async function generateDeviceKey() {
   return { privateJwk, publicKey: publicKeyB64 };
 }
 async function signConnectJwt(args) {
-  const { appId, privateJwk, credentialId } = args;
+  const { agentId, privateJwk, credentialId } = args;
   const key = await importJWK({ ...privateJwk, alg: "EdDSA" }, "EdDSA");
   const header = { alg: "EdDSA" };
   if (credentialId)
     header.kid = credentialId;
   const now = Math.floor(Date.now() / 1e3);
-  const jwt = await new SignJWT({}).setProtectedHeader(header).setIssuer(appId).setAudience("wire-api").setSubject(credentialId ?? "bootstrap").setJti(randomJti()).setIssuedAt(now).setExpirationTime(now + JWT_LIFETIME_SECONDS).sign(key);
+  const jwt = await new SignJWT({}).setProtectedHeader(header).setIssuer(agentId).setAudience("wire-api").setSubject(credentialId ?? "bootstrap").setJti(randomJti()).setIssuedAt(now).setExpirationTime(now + JWT_LIFETIME_SECONDS).sign(key);
   return jwt;
 }
 
@@ -1251,12 +1251,12 @@ var DEFAULT_CONSENT_PATH = "/sdk/connect";
 var POLL_INTERVAL_MS = 2e3;
 var POLL_TIMEOUT_MS = 5 * 60 * 1e3;
 var WireClient = class {
-  appId;
+  agentId;
   providedDeviceKey;
   constructor(options) {
-    if (!options.appId)
-      throw new Error("WireClient: appId is required");
-    this.appId = options.appId;
+    if (!options.agentId)
+      throw new Error("WireClient: agentId is required");
+    this.agentId = options.agentId;
     this.providedDeviceKey = options.deviceKey ?? null;
   }
   /**
@@ -1274,7 +1274,7 @@ var WireClient = class {
     }
     const nonce = generateNonce();
     const jwt = await signConnectJwt({
-      appId: this.appId,
+      agentId: this.agentId,
       privateJwk: deviceKey.privateJwk,
       credentialId: isBootstrap ? null : deviceKey.credentialId
     });
@@ -1309,7 +1309,7 @@ var WireClient = class {
       containerName: polled.container_name,
       orgSlug: deriveOrgSlug(polled.mcp_endpoint),
       expiresAt: polled.is_ephemeral && polled.created_at ? new Date(new Date(polled.created_at).getTime() + 7 * 24 * 60 * 60 * 1e3) : null,
-      appId: polled.app_id,
+      agentId: polled.app_id,
       credentialId: polled.credential_id,
       deviceKey,
       connectedAt: /* @__PURE__ */ new Date(),
@@ -1340,7 +1340,7 @@ var WireClient = class {
         lastUsedAt: data.connection.last_used_at ? new Date(data.connection.last_used_at) : null,
         label: data.connection.label
       },
-      app: data.app
+      agent: data.app
     };
   }
   /**

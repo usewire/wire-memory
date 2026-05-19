@@ -1,6 +1,6 @@
 {
   "name": "@usewire/memory",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "Persistent memory for AI agents via Wire containers",
   "author": "Superloops LLC",
   "license": "MIT",
@@ -40,7 +40,7 @@
     "node": ">=18.0.0"
   },
   "devDependencies": {
-    "@usewire/sdk": "^0.1.1",
+    "@usewire/sdk": "^0.2.0",
     "esbuild": "^0.28.0"
   }
 }

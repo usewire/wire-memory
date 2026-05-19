@@ -59,7 +59,7 @@ async function persistConnection(connection) {
     created_at: connection.expiresAt
       ? new Date(connection.expiresAt.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()
       : null,
-    app_id: connection.appId,
+    app_id: connection.agentId,
     credential_id: connection.credentialId,
     org_slug: connection.orgSlug,
     expires_at: connection.expiresAt?.toISOString() ?? null,
@@ -105,7 +105,7 @@ async function main() {
   const existingDeviceKey = await readJsonOrNull(DEVICE_KEY_FILE);
 
   const client = new WireClient({
-    appId: APP_ID,
+    agentId: APP_ID,
     deviceKey: existingDeviceKey ?? undefined,
   });
 
